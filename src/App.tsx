@@ -2,8 +2,6 @@ import React, { useState, useEffect } from "react";
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 
-
-// ✅ Firebase 설정
 const firebaseConfig = {
   apiKey: "AIzaSyBGs1iavtpzHozh0QMqAsIjhFK8kD73m3g",
   authDomain: "jackpotttt.firebaseapp.com",
@@ -26,6 +24,8 @@ const TAG_CLR = {
   "재구매+객단가": { bg:"#FCE7F3", tx:"#DB2777" },
   "충성도강화":    { bg:"#E0E7FF", tx:"#4338CA" },
   "시즌전환":      { bg:"#CCFBF1", tx:"#0D9488" },
+  "상시운영":      { bg:"#FEF9C3", tx:"#854D0E" },
+  "주기반복":      { bg:"#ECFDF5", tx:"#065F46" },
 };
 const STS = ["준비중","진행중","완료"];
 const STS_CLR = {
@@ -33,17 +33,23 @@ const STS_CLR = {
   "진행중": { bg:"#FEF3C7", tx:"#B45309" },
   "완료":   { bg:"#D1FAE5", tx:"#059669" },
 };
-const FIXED_TABS = ["전체","재구매","매출부스트"];
+const FIXED_TABS = ["전체","상시운영","주기반복","재구매","매출부스트"];
 
 const INIT = [
-  { id:1, title:"여름 입문 기획전",       start:"07/01", end:"07/14", month:7, year:2025, tag:"신규유입",      desc:"신규 고객 유입을 위한 여름 입문 기획전", status:"준비중", cl:[{id:1,t:"첫구매 할인쿠폰 세팅",d:false},{id:2,t:"스타터팩 번들 구성",d:false},{id:3,t:"랜딩 팝업 등록",d:false}], notes:"" },
-  { id:2, title:"복날 특수 타임딜",        start:"07/08", end:"07/18", month:7, year:2025, tag:"매출부스트",    desc:"복날을 겨냥한 한정 타임딜 이벤트", status:"준비중", cl:[{id:1,t:"타임딜 상품 선정",d:false},{id:2,t:"48시간 카운터 배너",d:false},{id:3,t:"랜덤증정 재고 확보",d:false}], notes:"" },
-  { id:3, title:"휴가지 니코틴프리 기획전", start:"07/19", end:"07/31", month:7, year:2025, tag:"카테고리부스트", desc:"누벨ZERO·Summer Breeze ZERO 집중 기획전", status:"준비중", cl:[{id:1,t:"누벨ZERO 기획전 페이지",d:false},{id:2,t:"Summer Breeze 팝업",d:false},{id:3,t:"5종 묶음 가격 설정",d:false}], notes:"" },
-  { id:4, title:"월말 재구매 부스터",       start:"07/26", end:"07/31", month:7, year:2025, tag:"재구매",        desc:"월말 재방문·재구매 유도 집중 프로모션", status:"준비중", cl:[{id:1,t:"구매이력 기반 쿠폰 발급",d:false},{id:2,t:"재방문 팝업 등록",d:false},{id:3,t:"리뷰 2배 적립 설정",d:false}], notes:"" },
-  { id:5, title:"여름 럭키박스 챌린지",     start:"08/01", end:"08/15", month:8, year:2025, tag:"재구매+객단가", desc:"5만원 이상 구매 시 럭키박스 증정 챌린지", status:"준비중", cl:[{id:1,t:"박스 구성품 선정",d:false},{id:2,t:"5만원 이상 조건 설정",d:false},{id:3,t:"언박싱 유도 문구",d:false}], notes:"" },
-  { id:6, title:"광복절 특가 세일",         start:"08/13", end:"08/15", month:8, year:2025, tag:"매출부스트",    desc:"광복절 기념 전카테고리 15% 할인 세일", status:"준비중", cl:[{id:1,t:"전카테고리 15% 할인 설정",d:false},{id:2,t:"D-day 카운터 배너",d:false},{id:3,t:"기간 한정 팝업",d:false}], notes:"" },
-  { id:7, title:"VIP 회원 감사 이벤트",     start:"08/16", end:"08/25", month:8, year:2025, tag:"충성도강화",    desc:"상위 구매자 대상 VIP 전용 혜택 이벤트", status:"준비중", cl:[{id:1,t:"상위 구매자 리스트 추출",d:false},{id:2,t:"VIP 전용 쿠폰 발급",d:false},{id:3,t:"무료배송 조건 설정",d:false}], notes:"" },
-  { id:8, title:"가을 시즌 예열 기획전",    start:"08/26", end:"08/31", month:8, year:2025, tag:"시즌전환",      desc:"가을 시즌 전환을 위한 신제품 사전 예열", status:"준비중", cl:[{id:1,t:"신제품 사전 등록",d:false},{id:2,t:"위시리스트 쿠폰 자동화",d:false},{id:3,t:"가을 테마 배너",d:false}], notes:"" },
+  { id:1,  title:"여름 입문 기획전",        start:"07/01", end:"07/14", month:7, year:2025, tag:"신규유입",      desc:"신규 고객 유입을 위한 여름 입문 기획전", status:"준비중", cl:[{id:1,t:"첫구매 할인쿠폰 세팅",d:false},{id:2,t:"스타터팩 번들 구성",d:false},{id:3,t:"랜딩 팝업 등록",d:false}], notes:"" },
+  { id:2,  title:"복날 특수 타임딜",         start:"07/08", end:"07/18", month:7, year:2025, tag:"매출부스트",    desc:"복날을 겨냥한 한정 타임딜 이벤트", status:"준비중", cl:[{id:1,t:"타임딜 상품 선정",d:false},{id:2,t:"48시간 카운터 배너",d:false},{id:3,t:"랜덤증정 재고 확보",d:false}], notes:"" },
+  { id:3,  title:"휴가지 니코틴프리 기획전",  start:"07/19", end:"07/31", month:7, year:2025, tag:"카테고리부스트", desc:"누벨ZERO·Summer Breeze ZERO 집중 기획전", status:"준비중", cl:[{id:1,t:"누벨ZERO 기획전 페이지",d:false},{id:2,t:"Summer Breeze 팝업",d:false},{id:3,t:"5종 묶음 가격 설정",d:false}], notes:"" },
+  { id:4,  title:"월말 재구매 부스터",        start:"07/26", end:"07/31", month:7, year:2025, tag:"재구매",        desc:"월말 재방문·재구매 유도 집중 프로모션", status:"준비중", cl:[{id:1,t:"구매이력 기반 쿠폰 발급",d:false},{id:2,t:"재방문 팝업 등록",d:false},{id:3,t:"리뷰 2배 적립 설정",d:false}], notes:"" },
+  { id:5,  title:"여름 럭키박스 챌린지",      start:"08/01", end:"08/15", month:8, year:2025, tag:"재구매+객단가", desc:"5만원 이상 구매 시 럭키박스 증정 챌린지", status:"준비중", cl:[{id:1,t:"박스 구성품 선정",d:false},{id:2,t:"5만원 이상 조건 설정",d:false},{id:3,t:"언박싱 유도 문구",d:false}], notes:"" },
+  { id:6,  title:"광복절 특가 세일",          start:"08/13", end:"08/15", month:8, year:2025, tag:"매출부스트",    desc:"광복절 기념 전카테고리 15% 할인 세일", status:"준비중", cl:[{id:1,t:"전카테고리 15% 할인 설정",d:false},{id:2,t:"D-day 카운터 배너",d:false},{id:3,t:"기간 한정 팝업",d:false}], notes:"" },
+  { id:7,  title:"VIP 회원 감사 이벤트",      start:"08/16", end:"08/25", month:8, year:2025, tag:"충성도강화",    desc:"상위 구매자 대상 VIP 전용 혜택 이벤트", status:"준비중", cl:[{id:1,t:"상위 구매자 리스트 추출",d:false},{id:2,t:"VIP 전용 쿠폰 발급",d:false},{id:3,t:"무료배송 조건 설정",d:false}], notes:"" },
+  { id:8,  title:"가을 시즌 예열 기획전",     start:"08/26", end:"08/31", month:8, year:2025, tag:"시즌전환",      desc:"가을 시즌 전환을 위한 신제품 사전 예열", status:"준비중", cl:[{id:1,t:"신제품 사전 등록",d:false},{id:2,t:"위시리스트 쿠폰 자동화",d:false},{id:3,t:"가을 테마 배너",d:false}], notes:"" },
+  // ── 상시 운영형 ──
+  { id:9,  title:"리뷰 약속 무료 체험",       start:"상시",  end:"운영중", month:7, year:2025, tag:"상시운영", desc:"리뷰 작성 약속 시 액상/일회용 1개 무료 (1일 1개 한정) — 메인배너 노출 극대화 예정", status:"진행중", cl:[{id:1,t:"메인배너 등록",d:false},{id:2,t:"상품 목록 노출 설정",d:false},{id:3,t:"리뷰 수집 현황 모니터링",d:false}], notes:"원가 5,500원 수준 / 리뷰 자산으로 회수 / 신규 진입장벽 제로 효과" },
+  // ── 주기 반복형 ──
+  { id:10, title:"매주 요일 고정 딜",         start:"매주",  end:"반복",   month:7, year:2025, tag:"주기반복", desc:"월(소모품), 수(0% 액상), 금(기기특가) 요일별 고정 테마딜", status:"준비중", cl:[{id:1,t:"요일별 상품 선정",d:false},{id:2,t:"배너 템플릿 제작",d:false},{id:3,t:"자동화 스케줄 설정",d:false}], notes:"월:일체형팟·카트리지 / 수:니코틴프리 라인 / 금:입문기·중급기" },
+  { id:11, title:"월말 창고 정리 MEGA SALE",  start:"매월말", end:"3일간",  month:7, year:2025, tag:"주기반복", desc:"매월 말 3일간 단종·과재고 상품 특가 방출 — 재고 회전 + '월말엔 득템' 기대감 형성", status:"준비중", cl:[{id:1,t:"방출 상품 리스트 선정",d:false},{id:2,t:"할인율 설정",d:false},{id:3,t:"배너 제작 및 등록",d:false}], notes:"XP-18000·구형 기기 등 단종 임박·과재고 상품 대상" },
+  { id:12, title:"스탬프 적립 이벤트",        start:"상시",  end:"운영중",  month:7, year:2025, tag:"주기반복", desc:"구매 N회 = 무료 상품 1개 (커피 쿠폰 방식) — '한 번 더 사면 공짜' 재구매 동기 부여", status:"준비중", cl:[{id:1,t:"적립 시스템 기획",d:false},{id:2,t:"무료 상품 선정",d:false},{id:3,t:"적립 현황 페이지 제작",d:false}], notes:"N회 기준 및 무료 상품 범위 확정 필요" },
 ];
 
 const lbl = { display:"block", fontSize:12, fontWeight:600, color:"#374151", marginBottom:4 };
@@ -51,12 +57,15 @@ const inp = { width:"100%", border:"1px solid #E5E7EB", borderRadius:8, padding:
 const now = new Date();
 
 function getMonthTabs(evs) {
-  return [...new Set(evs.map(e=>`${e.year}-${String(e.month).padStart(2,'0')}`))]
+  const keys = [...new Set(evs.filter(e=>!isNaN(e.month)).map(e=>`${e.year}-${String(e.month).padStart(2,'0')}`))]
     .sort().map(k=>{ const [y,m]=k.split('-'); return {year:Number(y),month:Number(m),label:`${y}.${m}월`,key:k}; });
+  return keys;
 }
 function filterEvs(evs, tab) {
   if(tab==="재구매") return evs.filter(e=>e.tag.includes("재구매"));
   if(tab==="매출부스트") return evs.filter(e=>e.tag==="매출부스트");
+  if(tab==="상시운영") return evs.filter(e=>e.tag==="상시운영");
+  if(tab==="주기반복") return evs.filter(e=>e.tag==="주기반복");
   if(tab==="전체") return evs;
   const [y,m]=tab.split('-');
   return evs.filter(e=>e.year===Number(y)&&e.month===Number(m));
@@ -69,69 +78,44 @@ export default function App() {
   const [modal, setModal] = useState(null);
   const [newTxt, setNewTxt] = useState("");
 
-  // ✅ Firebase 실시간 동기화
   useEffect(() => {
     const unsub = onSnapshot(DOC_REF, (snap) => {
-      if (snap.exists()) {
-        setEvs(snap.data().list);
-      } else {
-        // 최초 1회 초기 데이터 저장
-        setDoc(DOC_REF, { list: INIT });
-      }
+      if (snap.exists()) { setEvs(snap.data().list); }
+      else { setDoc(DOC_REF, { list: INIT }); }
       setLoading(false);
     });
     return () => unsub();
   }, []);
 
-  const save2db = async (next) => {
-    await setDoc(DOC_REF, { list: next });
-  };
+  const save2db = async (next) => { await setDoc(DOC_REF, { list: next }); };
 
   const list = filterEvs(evs, tab);
   const done = evs.filter(e=>e.status==="완료").length;
   const pct = Math.round((done/evs.length)*100);
   const monthTabs = getMonthTabs(evs);
 
-  const upd = (ev) => {
-    const next = evs.map(e=>e.id===ev.id?ev:e);
-    setEvs(next); save2db(next);
-  };
-
+  const upd = (ev) => { const next=evs.map(e=>e.id===ev.id?ev:e); setEvs(next); save2db(next); };
   const cycleStatus = (e, id) => {
     e.stopPropagation();
-    const next = evs.map(ev=>{
-      if(ev.id!==id) return ev;
-      const i=STS.indexOf(ev.status);
-      return {...ev, status:STS[(i+1)%3]};
-    });
+    const next=evs.map(ev=>{ if(ev.id!==id)return ev; const i=STS.indexOf(ev.status); return {...ev,status:STS[(i+1)%3]}; });
     setEvs(next); save2db(next);
   };
-
-  const openModal = (ev) => { setModal({...ev, cl:ev.cl.map(c=>({...c}))}); setNewTxt(""); };
-
+  const openModal = (ev) => { setModal({...ev,cl:ev.cl.map(c=>({...c}))}); setNewTxt(""); };
   const saveModal = () => {
-    const isNew = !evs.find(e=>e.id===modal.id);
-    const next = isNew ? [...evs, modal] : evs.map(e=>e.id===modal.id?modal:e);
+    const isNew=!evs.find(e=>e.id===modal.id);
+    const next=isNew?[...evs,modal]:evs.map(e=>e.id===modal.id?modal:e);
     setEvs(next); save2db(next); setModal(null);
   };
+  const toggleItem=(cid)=>setModal(m=>({...m,cl:m.cl.map(c=>c.id===cid?{...c,d:!c.d}:c)}));
+  const delItem=(cid)=>setModal(m=>({...m,cl:m.cl.filter(c=>c.id!==cid)}));
+  const addItem=()=>{ if(!newTxt.trim())return; setModal(m=>({...m,cl:[...m.cl,{id:Date.now(),t:newTxt.trim(),d:false}]})); setNewTxt(""); };
 
-  const toggleItem = (cid) => setModal(m=>({...m,cl:m.cl.map(c=>c.id===cid?{...c,d:!c.d}:c)}));
-  const delItem   = (cid) => setModal(m=>({...m,cl:m.cl.filter(c=>c.id!==cid)}));
-  const addItem   = () => {
-    if(!newTxt.trim()) return;
-    setModal(m=>({...m,cl:[...m.cl,{id:Date.now(),t:newTxt.trim(),d:false}]}));
-    setNewTxt("");
-  };
-
-  if(loading) return (
-    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",fontFamily:"'Apple SD Gothic Neo',sans-serif",color:"#9CA3AF",fontSize:14}}>
-      데이터 불러오는 중...
-    </div>
-  );
+  if(loading) return <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",fontFamily:"'Apple SD Gothic Neo',sans-serif",color:"#9CA3AF",fontSize:14}}>데이터 불러오는 중...</div>;
 
   return (
     <div style={{fontFamily:"'Apple SD Gothic Neo','Malgun Gothic',sans-serif",background:"#F1F5F9",minHeight:"100vh",padding:"16px 20px"}}>
 
+      {/* 헤더 */}
       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
         <span style={{fontSize:18,fontWeight:800,color:"#111827"}}>전담GATE</span>
         <span style={{fontSize:13,color:"#9CA3AF"}}>이벤트 플래너</span>
@@ -151,6 +135,7 @@ export default function App() {
         </div>
       </div>
 
+      {/* 탭 */}
       <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:12,flexWrap:"wrap"}}>
         {FIXED_TABS.map(t=>(
           <button key={t} onClick={()=>setTab(t)} style={{
@@ -176,18 +161,15 @@ export default function App() {
           </button>
         ))}
         <button onClick={()=>openModal({
-          id:Date.now(), title:"새 이벤트",
+          id:Date.now(),title:"새 이벤트",
           start:`${String(now.getMonth()+1).padStart(2,'0')}/01`,
           end:`${String(now.getMonth()+1).padStart(2,'0')}/30`,
-          month:now.getMonth()+1, year:now.getFullYear(),
-          tag:"신규유입", desc:"", status:"준비중", cl:[], notes:""
-        })} style={{
-          marginLeft:"auto",padding:"5px 14px",borderRadius:16,
-          border:"1.5px solid #111827",background:"#111827",
-          color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer"
-        }}>+ 추가</button>
+          month:now.getMonth()+1,year:now.getFullYear(),
+          tag:"신규유입",desc:"",status:"준비중",cl:[],notes:""
+        })} style={{marginLeft:"auto",padding:"5px 14px",borderRadius:16,border:"1.5px solid #111827",background:"#111827",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer"}}>+ 추가</button>
       </div>
 
+      {/* 그리드 */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
         {list.map(ev=>{
           const tc=TAG_CLR[ev.tag]||{bg:"#F3F4F6",tx:"#374151"};
@@ -204,7 +186,7 @@ export default function App() {
                 <button onClick={(e)=>cycleStatus(e,ev.id)} style={{background:sc.bg,color:sc.tx,border:"none",borderRadius:10,padding:"2px 9px",fontSize:11,fontWeight:700,cursor:"pointer"}}>{ev.status}</button>
               </div>
               <div style={{fontSize:13,fontWeight:700,color:"#111827",marginBottom:4,lineHeight:1.3}}>{ev.title}</div>
-              <div style={{fontSize:11,color:"#9CA3AF",marginBottom:8}}>📅 {ev.year}.{ev.start} ~ {ev.end}</div>
+              <div style={{fontSize:11,color:"#9CA3AF",marginBottom:8}}>📅 {ev.start} ~ {ev.end}</div>
               <div style={{display:"flex",alignItems:"center",gap:6}}>
                 <div style={{flex:1,background:"#F3F4F6",borderRadius:999,height:4,overflow:"hidden"}}>
                   <div style={{background:clPct===100?"#10B981":"#3B82F6",width:`${clPct}%`,height:"100%",borderRadius:999}}/>
@@ -228,6 +210,7 @@ export default function App() {
         })}
       </div>
 
+      {/* 모달 */}
       {modal&&(
         <div onClick={()=>setModal(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:20}}>
           <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:18,width:"100%",maxWidth:500,maxHeight:"88vh",overflowY:"auto",padding:"24px 24px 20px"}}>
@@ -243,9 +226,9 @@ export default function App() {
               <div>
                 <label style={lbl}>기간</label>
                 <div style={{display:"flex",gap:4,alignItems:"center"}}>
-                  <input value={modal.start} onChange={e=>setModal(m=>({...m,start:e.target.value}))} placeholder="MM/DD" style={{...inp,marginBottom:0,flex:1}}/>
+                  <input value={modal.start} onChange={e=>setModal(m=>({...m,start:e.target.value}))} placeholder="MM/DD 또는 상시" style={{...inp,marginBottom:0,flex:1}}/>
                   <span style={{color:"#9CA3AF",fontSize:12,marginBottom:12}}>~</span>
-                  <input value={modal.end} onChange={e=>setModal(m=>({...m,end:e.target.value}))} placeholder="MM/DD" style={{...inp,marginBottom:0,flex:1}}/>
+                  <input value={modal.end} onChange={e=>setModal(m=>({...m,end:e.target.value}))} placeholder="MM/DD 또는 반복" style={{...inp,marginBottom:0,flex:1}}/>
                 </div>
               </div>
             </div>
