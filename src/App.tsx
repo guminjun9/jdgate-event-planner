@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 
+
 // ✅ Firebase 설정
 const firebaseConfig = {
   apiKey: "AIzaSyBGs1iavtpzHozh0QMqAsIjhFK8kD73m3g",
